@@ -1,0 +1,118 @@
+﻿@page "/CartView"
+@using webbutveckling_labb2_LottaHarmonen.Shared.DTOs
+@using System.Security.Cryptography.X509Certificates
+@inject WineService WineService
+@inject OrderService OrderService
+@inject CustomerService CustomerService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+<MudDialogProvider />
+
+<MudGrid>
+
+    <MudItem xs="12">
+        <MudPaper Class="d-flex align-center justify-center mud-width-full py-8">
+            <h1>Your shopping cart</h1>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" sm="12">
+        <MudPaper Class="d-flex align-center justify-center">
+            <MudList>
+                <MudVirtualize Items="Wines">
+                    <MudListItem Avatar="@Icons.Material.Filled.ShoppingBasket">
+                        <p>@context.Name</p>
+                        <p>@context.Price</p>
+                    </MudListItem>
+                </MudVirtualize>
+            </MudList>
+        </MudPaper>
+
+        <MudPaper Class="d-flex align-center justify-center mud-width-full py-8">
+            <MudButton Variant="Variant.Filled" Size="Size.Large" Color="Color.Tertiary" OnClick="GoToCheckOut">Go to check out</MudButton>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+
+@code {
+
+    public List<WineDTO> Wines { get; set; } = new List<WineDTO>();
+    public List<int> ProductsIds = new List<int>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Wines.AddRange(WineService.Cart);
+    }
+    [Inject] private IDialogService DialogService { get; set; }
+
+
+    private async Task GoToCheckOut(MouseEventArgs obj)
+    {
+        if (!WineService.Cart.Any())
+        {
+            return;
+        }
+
+        if (CustomerService.CurrentUser == null)
+        {
+            //BE ANVÄNDAREN ATT LOGGA IN IGEN
+            bool? result = await DialogService.ShowMessageBox(
+                "One more step!", 
+                "Log in to your account or register", 
+                yesText:"Login", cancelText:"Cancel");
+
+            if (result == true) 
+            {
+                NavigationManager.NavigateTo("/LogInView");
+            }
+
+            StateHasChanged();
+        }
+        else
+        {
+
+            //anropa en metod som ska lägga till nya orders
+            await AddNewOrders();
+
+            //BE ANVÄNDAREN ATT LOGGA IN IGEN
+            bool? result = await DialogService.ShowMessageBox(
+                "Great news!",
+                "Thank you for your purchase! It has been successfully processed.",
+                yesText:"OK");
+
+
+            if (result == true)
+            {
+                WineService.Cart.Clear();
+                NavigationManager.NavigateTo("/");
+            }
+
+            StateHasChanged();
+        }
+
+
+
+
+    }
+
+    
+    
+    private async Task AddNewOrders()
+    {
+
+        //take all the ids
+        List<int> productIds = WineService.Cart.Select(product => product.ProductId).ToList();
+
+        var NewOrderDTO = new NewOrderDTO()
+        {
+            CustomerId = CustomerService.CurrentUser.Id,
+            OrderDate = DateOnly.FromDateTime(DateTime.Today),
+            ProductId = productIds
+            
+        };
+
+       await OrderService.AddNewOrder(NewOrderDTO);
+
+    }
+}

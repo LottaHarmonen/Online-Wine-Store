@@ -1,0 +1,281 @@
+﻿@page "/LogInView"
+@using System.Text.RegularExpressions
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using webbutveckling_labb2_LottaHarmonen.Shared.DTOs
+@using System.ComponentModel
+@using System.Security.Claims
+@using System.Security.Cryptography.X509Certificates
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@rendermode InteractiveServer
+@inject ISnackbar Snackbar
+@inject CustomerService CustomerService
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudGrid>
+
+    <MudItem xs="12">
+        <MudPaper Style="@($"color:{Colors.Brown.Lighten3}; background:{Colors.Grey.Darken3};")" Class="d-flex align-center justify-center mud-width-full py-8">
+            <h1>Login or sign in with a new user</h1>
+        </MudPaper>
+    </MudItem>
+
+
+    <MudItem xs="12" sm="12" Justify="Justify.Center">
+        <MudGrid Spacing="1" Justify="Justify.Center">
+            <EditForm Model="@LogInModel" OnValidSubmit="OnValidSubmit">
+                <DataAnnotationsValidator />
+
+                <MudItem xs="12" sm="12">
+                    <MudCard>
+                        <div class="d-flex justify-center">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Title="Favorite" Class="mr-1" />
+                        </div>
+                        <MudCardContent>
+                            <MudTextField Label="Email" HelperText="Email"
+                                          @bind-Value="LogInModel.Email" For="@(() => LogInModel.Email)" />
+                            <MudTextField Label="Password" HelperText="Password" Class="mt-3"
+                                          @bind-Value="LogInModel.Password" For="@(() => LogInModel.Password)" />
+
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto" Disabled="@IsLoading">
+                                Login
+                            </MudButton>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+
+
+            </EditForm>
+
+            @if (IsLoading)
+            {
+
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+            }
+        </MudGrid>
+    </MudItem>
+
+
+    <MudItem xs="12">
+        <MudPaper Style="@($"color:{Colors.Brown.Lighten3}; background:{Colors.Grey.Darken3};")" Class="d-flex align-center justify-center mud-width-full py-8">
+            <h1>Sign in</h1>
+        </MudPaper>
+    </MudItem>
+
+
+    <MudItem xs="12" Justify="Justify.Center">
+        <MudGrid Justify="Justify.Center">
+
+            <MudPaper Elevation="3" Width="50%">
+
+
+                <MudForm Class="mud-width-" @ref="form" @bind-IsValid="@success">
+                    <MudTextField T="string" Label="FirstName" @bind-Value="FirstName" Required="true" RequiredError="First name is required!" />
+                    <MudTextField T="string" Label="Surename" @bind-Value="Surename" Required="true" RequiredError="Surename is required!" />
+                    <MudTextField T="string" Label="Email" @bind-Value="Email" Required="true" RequiredError="Email is required!"
+                                  Validation="@(new EmailAddressAttribute() { ErrorMessage = "The email address is invalid" })" />
+                    <MudTextField T="string" Label="Phone Number" @bind-Value="PhoneNumber" Required="true" RequiredError="Phone number is required!" />
+                    <MudTextField T="string" Label="Address (Streetname, Streetnumber, postal code and City)" @bind-Value="Address" Required="true" RequiredError="Address is required!" />
+
+                    <MudTextField T="string" Label="Password" @bind-Value="Password" HelperText="Choose a strong password" @ref="pwField1"
+                                  InputType="InputType.Password"
+                                  Validation="@(new Func<string, IEnumerable<string>>(PasswordStrength))" Required="true"
+                                  RequiredError="Password is required!" />
+                    <MudTextField T="string"
+                                  Label="Password" HelperText="Repeat the password" InputType="InputType.Password"
+                                  Validation="@(new Func<string, string>(PasswordMatch))" />
+                    <div class="d-flex">
+                        <MudRadioGroup T="bool" @bind-Value="AccountType" Required="true" RequiredError="Account type is required!">
+                            <MudRadio Option="false">Personal</MudRadio>
+                            <MudRadio Option="true">Admin</MudRadio>
+                        </MudRadioGroup>
+                    </div>
+                    <div class="d-flex align-center justify-space-between">
+                        
+                        @if (IsLoadingRegister)
+                        {
+
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                        }
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!success)" Class="ml-auto" OnClick="AddNewUser">Register </MudButton>
+                    </div>
+
+
+
+                </MudForm>
+
+
+            </MudPaper>
+        </MudGrid>
+    </MudItem>
+
+
+</MudGrid>
+
+
+
+@code {
+
+
+    [CascadingParameter]
+    public HttpContext? HttpContext { get; set; }
+
+
+    [SupplyParameterFromForm]
+    public CustomerLogInDTO LogInModel { get; set; } = new();
+
+    public string ErrorMessage;
+
+
+
+    private string FirstName { get; set; }
+    private string Surename { get; set; }
+    private string Email { get; set; }
+    private string PhoneNumber { get; set; }
+    private string Address { get; set; }
+    private string Password { get; set; }
+    private bool AccountType { get; set; }
+
+    bool success;
+    MudTextField<string> pwField1;
+    MudForm form;
+
+    private IEnumerable<string> PasswordStrength(string pw)
+    {
+        if (string.IsNullOrWhiteSpace(pw))
+        {
+            yield return "Password is required!";
+            yield break;
+        }
+        if (!Regex.IsMatch(pw, @"[0-9]"))
+            yield return "Password must contain at least one digit";
+    }
+
+    private string PasswordMatch(string arg)
+    {
+        if (pwField1.Value != arg)
+            return "Passwords don't match";
+        return null;
+
+    }
+
+    MudMessageBox mbox { get; set; }
+    string state = "Message box hasn't been opened yet";
+
+    private async Task AddNewUser(MouseEventArgs arg)
+    {
+        //create a new userDTO
+
+        CustomerDTO newCustomer = new CustomerDTO()
+            {
+                FirstName = FirstName,
+                Surname = Surename,
+                Address = Address,
+                Email = Email,
+                PhoneNumber = PhoneNumber,
+                Password = Password,
+                IsAdmin = AccountType
+            };
+        IsLoadingRegister = true;
+        var isSuccessful = await CustomerService.AddNewCustomer(newCustomer);
+
+        if (isSuccessful)
+        {
+            IsLoadingRegister = false;
+            bool? result = await DialogService.ShowMessageBox(
+                "Congratulations! You've successfully signed in. Ready to explore?",
+                "You can now login to your new account",
+                yesText: "OK");
+        }
+        else
+        {
+            IsLoadingRegister = false;
+            bool? result = await DialogService.ShowMessageBox(
+                "Account with this email already exists",
+                "Login to your account",
+                yesText: "OK");
+        }
+
+    }
+
+
+
+
+
+    RegisterAccountForm model = new();
+    public class RegisterAccountForm
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; }
+
+        [Required]
+        public string FirstName { get; set; }
+
+
+    }
+
+    public string Role;
+    public bool IsLoading;
+    public bool IsLoadingRegister { get; set; }
+
+    private async Task OnValidSubmit(EditContext context)
+    {
+        IsLoading = true;
+        success = true;
+        StateHasChanged();
+
+        var userAccount = await CustomerService.GetCustomerByEmail(LogInModel.Email);
+
+
+        if (userAccount?.Email == null || userAccount.Password != LogInModel.Password)
+        {
+            ErrorMessage = "Invalid email or password";
+            return;
+        }
+
+        Snackbar.Add("Login successful, Redirecting...", Severity.Success);
+        await Task.Delay(2000);
+
+
+
+
+
+        if (userAccount.IsAdmin)
+        {
+            Role = "Admin";
+        }
+        else
+        {
+            Role = "User";
+        }
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.Email, LogInModel.Email),
+            new Claim(ClaimTypes.Role, Role)
+        };
+
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        var principal = new ClaimsPrincipal(identity);
+        //await HttpContext.SignInAsync(principal);
+
+        CustomerService.CurrentUser = userAccount;
+        IsLoading = false;
+        NavigationManager.NavigateTo("/UserView");
+
+    }
+
+
+
+
+}

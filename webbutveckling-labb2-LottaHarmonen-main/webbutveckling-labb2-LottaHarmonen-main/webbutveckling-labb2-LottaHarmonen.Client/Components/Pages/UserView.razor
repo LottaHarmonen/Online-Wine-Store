@@ -1,0 +1,183 @@
+﻿@page "/UserView"
+@using webbutveckling_labb2_LottaHarmonen.Shared.DTOs
+@rendermode InteractiveServer
+@inject OrderService OrderService
+@inject CustomerService CustomerService
+@inject NavigationManager NavigationManager
+@inject WineService WineService
+
+
+
+<MudGrid>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto" OnClick="Logout"> Logout </MudButton>
+
+    @if (IsLoggingOut)
+    {
+
+        <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loggin out...</span>
+        </div>
+    }
+
+
+    <MudItem xs="12">
+        <MudPaper Class="d-flex align-center justify-center mud-width-full py-8" Style="@($"color:{Colors.Brown.Lighten3}; background:{Colors.Grey.Darken3};")">
+            <h1>Welcome back, here you can make changes to your contact information and view all your orders</h1>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="6">
+        <p>Your orders</p>
+        <MudPaper Class="d-flex align-center justify-center mud-width-full py-8">
+
+            <MudTable T="OrdersByCustomerDTO" Items="@OrdersByCustomer" Hover="true" Breakpoint="Breakpoint.Sm" @ref="_mudTable"
+                      RowClass="cursor-pointer" RowClassFunc="@SelectedRowClassFunc" OnRowClick="RowClickEvent">
+                <HeaderContent>
+                    <MudTh>Order Id</MudTh>
+                    <MudTh>Amount of items</MudTh>
+                    <MudTh>Order date</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Order Id">@context.Id</MudTd>
+                    <MudTd DataLabel="Amount of items">@context.AmountOfItems</MudTd>
+                    <MudTd DataLabel="Order date">@context.OrderDate</MudTd>
+                </RowTemplate>
+            </MudTable>
+
+
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="6">
+        <p>Order details</p>
+        <MudPaper Class="d-flex align-center justify-center mud-width-full py-8">
+
+            <MudPaper Width="300px" Height="300">
+                <MudList>
+                    <MudVirtualize Items="AllWinesInAnOrder">
+                        <MudListItem Avatar="@Icons.Material.Filled.Circle">
+                            <p>@context.Name</p>
+                            <p>@context.Price $</p>
+                        </MudListItem>
+                    </MudVirtualize>
+                </MudList>
+            </MudPaper>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="6">
+
+
+        <h3>Update user information</h3>
+
+        <MudTextField @bind-Value="CurrentCustomerDto.FirstName" Label="First Name" Variant="Variant.Outlined"></MudTextField>
+        <MudTextField @bind-Value="CurrentCustomerDto.Surname" Label="Surname" Variant="Variant.Outlined"></MudTextField>
+        <MudTextField @bind-Value="CurrentCustomerDto.Email" Label="Email" Variant="Variant.Outlined"></MudTextField>
+        <MudTextField @bind-Value="CurrentCustomerDto.Address" Label="Address" Variant="Variant.Outlined"></MudTextField>
+        <MudTextField @bind-Value="CurrentCustomerDto.PhoneNumber" Label="Phone Number" Variant="Variant.Outlined"></MudTextField>
+        <MudTextField @bind-Value="Role" Label="Role" Variant="Variant.Outlined"></MudTextField>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="UpdateUserInformation">Update personal information</MudButton>
+
+    </MudItem>
+
+
+</MudGrid>
+
+
+
+
+@code {
+
+    public IEnumerable<OrdersByCustomerDTO> OrdersByCustomer = new List<OrdersByCustomerDTO>();
+
+    private readonly List<string> _clickedEvents = new();
+    private int _selectedRowNumber = -1;
+    public OrdersByCustomerDTO SelectedOrder = new();
+    public List<WineByOrderDTO> AllWinesInAnOrder = new List<WineByOrderDTO>();
+    private MudTable<OrdersByCustomerDTO> _mudTable;
+
+
+    public CustomerDTO CurrentCustomerDto = new();
+    public string Role = "";
+
+    public bool IsLoggingOut { get; set; }
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (CustomerService.CurrentUser != null)
+        {
+            //hämta den riktiga usern med hjälp av currentUser
+            var currentCustomerDto = await CustomerService.GetCustomerByEmail(CustomerService.CurrentUser.Email);
+
+            //hämta all orders från den kunden och fyll listan som ska visa de
+            var allOrdersByCustomer = await OrderService.GetAllOrdersByUser(currentCustomerDto.Id);
+            OrdersByCustomer = allOrdersByCustomer;
+
+            //fyll i user information med en customerDTO
+            CurrentCustomerDto = currentCustomerDto;
+            if (currentCustomerDto.IsAdmin)
+            {
+                Role = "Admin";
+            }
+            else
+            {
+                Role = "User";
+            }
+        }
+    }
+
+
+    private string SelectedRowClassFunc(OrdersByCustomerDTO element, int rowNumber)
+    {
+
+        if (_selectedRowNumber == rowNumber)
+        {
+            _selectedRowNumber = -1;
+            _clickedEvents.Add("Selected Row: None");
+            return string.Empty;
+        }
+        else if (_mudTable.SelectedItem != null && _mudTable.SelectedItem.Equals(element))
+        {
+            _selectedRowNumber = rowNumber;
+            _clickedEvents.Add($"Selected Row: {rowNumber}");
+            return "selected";
+        }
+        else
+        {
+            return string.Empty;
+        }
+
+    }
+    private async Task RowClickEvent(TableRowClickEventArgs<OrdersByCustomerDTO> eventArgs)
+    {
+        SelectedOrder = eventArgs.Item;
+        await ShowAllWinesByOrder();
+    }
+    private async Task ShowAllWinesByOrder()
+    {
+        AllWinesInAnOrder.Clear();
+        AllWinesInAnOrder.AddRange(await WineService.GetWinesByOrderId(SelectedOrder.Id));
+    }
+
+    private async Task UpdateUserInformation(MouseEventArgs obj)
+    {
+        await CustomerService.UpdateCustomer(CurrentCustomerDto);
+    }
+
+    private async Task Logout(MouseEventArgs obj)
+    {
+        IsLoggingOut = true;
+        await Task.Delay(2000);
+        CustomerService.CurrentUser = null;
+        IsLoggingOut = false;
+        NavigationManager.NavigateTo("/");   
+    }
+
+
+
+}

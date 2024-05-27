@@ -1,0 +1,324 @@
+﻿@page "/AdminView"
+@using webbutveckling_labb2_LottaHarmonen.Shared.DTOs
+@using System.ComponentModel.DataAnnotations
+@attribute [StreamRendering]
+@inject WineService WineService
+@inject WineTypeService WineTypeService
+@inject CustomerService CustomerService
+@rendermode InteractiveServer
+<MudDialogProvider />
+
+<PageTitle>Admin View</PageTitle>
+
+<MudGrid>
+    <MudItem xs="12" Justify="Justify.Center">
+        <MudPaper Class="d-flex align-center justify-center mud-width-full py-8"><h1>Here you can make updates and add new wines as admin.</h1></MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="12" Justify="Justify.Center">
+        <MudGrid Spacing="4" Justify="Justify.Center">
+
+            <MudTable T="WineDTO" Items="@Wines" Hover="true" Breakpoint="Breakpoint.Sm" @ref="_mudTable"
+                      RowClass="cursor-pointer" RowClassFunc="@SelectedRowClassFunc" OnRowClick="RowClickEvent">
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Description</MudTh>
+                    <MudTh>Price</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Type</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Name">@context.Name</MudTd>
+                        <MudTd DataLabel="Description">@context.Description</MudTd>
+                        <MudTd DataLabel="Price">@context.Price</MudTd>
+                        <MudTd DataLabel="Status">@context.Status</MudTd>
+                        <MudTd DataLabel="Type">@context.TypeId</MudTd>
+                    </RowTemplate>
+                </MudTable>
+
+
+                <MudItem>
+                    <h3>Update Wine Information</h3>
+                    <MudTextField @bind-Value="SelectedWine.Name" Label="Wine Name" Variant="Variant.Outlined"></MudTextField>
+                    <MudTextField @bind-Value="SelectedWine.Description" Label="Wine Description" Variant="Variant.Outlined"></MudTextField>
+                    <MudTextField @bind-Value="SelectedWine.TypeId" Label="Wine Type" Variant="Variant.Outlined"></MudTextField>
+                    <MudTextField @bind-Value="SelectedWine.Price" Label="Price" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" />
+                    <MudRadioGroup T="bool" @bind-Value="SelectedWine.Status">
+                        <MudRadio Option="true">In Stock</MudRadio>
+                        <MudRadio Option="false">Unavailable</MudRadio>
+                    </MudRadioGroup>
+
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="(() => UpdateWine())">Update</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="(() => DeleteWine())">Delete</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudItem>
+
+
+        <MudItem xs="12" Justify="Justify.Center">
+            <MudPaper Class="d-flex align-center justify-center mud-width-full py-8"></MudPaper>
+        </MudItem>
+
+
+        <MudItem xs="12" sm="10" Justify="Justify.Center">
+            <MudGrid Spacing="2" Justify="Justify.Center">
+                <MudItem>
+                    <MudTextField @bind-Value="WineName" Label="Wine Label" Variant="Variant.Outlined"></MudTextField>
+                    <MudTextField @bind-Value="WineDescription" Label="Wine Description" Variant="Variant.Outlined"></MudTextField>
+                    <MudTextField @bind-Value="TypeTextValue" Label="Type Name (White etc.)" Variant="Variant.Outlined"></MudTextField>
+                    <MudTextField @bind-Value="Amount" Label="Price" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" />
+
+                    <MudRadioGroup T="bool" @bind-Value="Status">
+                        <MudRadio Option="true">In Stock</MudRadio>
+                    </MudRadioGroup>
+
+
+                </MudItem>
+                <MudItem>
+                    <h3>Add New Wine</h3>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="(() => AddNewWine())">Add New Wine</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudItem>
+
+
+        <MudItem xs="12" Justify="Justify.Center">
+            <MudPaper Class="d-flex align-center justify-center mud-width-full py-8"></MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="12">
+            <MudGrid Spacing="2" Justify="Justify.Center">
+                <MudItem>
+                    <h3>Wine Types</h3>
+                    <MudPaper Width="300px" Height="300">
+                        <MudList>
+                            <MudVirtualize Items="WineTypes">
+                                <MudListItem Avatar="@Icons.Material.Filled.Description">
+                                    <p>@context.Name</p>
+                            </MudListItem>
+                        </MudVirtualize>
+                    </MudList>
+                </MudPaper>
+            </MudItem>
+            <MudItem>
+                <h3>Add New Type</h3>
+                <MudTextField @bind-Value="TextValueNewWineType" Label="Type Name (White etc.)" Variant="Variant.Outlined"></MudTextField>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="(()=>AddNewWineType())">Add New Type</MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudItem>
+
+
+    <MudItem xs="12" Justify="Justify.Center">
+        <MudPaper Class="d-flex align-center justify-center mud-width-full py-8"></MudPaper>
+    </MudItem>
+
+
+
+    <MudItem xs="12" sm="12">
+        <MudGrid Spacing="2" Justify="Justify.Center">
+            <MudItem>
+                <MudTextField T="string" @bind-Value="@SearchTerm" Label="Search users by email" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="(()=>OnSearchInput())">Search</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="(()=>OnReset())">Reset</MudButton>
+            </MudItem>
+
+            <MudItem>
+                <MudTable T="CustomerDTO" Items="@Customers" Hover="true" Breakpoint="Breakpoint.Sm" @ref="_mudTableCustomer"
+                          RowClass="cursor-pointer" RowClassFunc="@SelectedRowClassFuncCustomer" OnRowClick="RowClickEventCustomer">
+                    <HeaderContent>
+                        <MudTh>Name</MudTh>
+                        <MudTh>Surname</MudTh>
+                        <MudTh>Email</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Name">@context.FirstName</MudTd>
+                            <MudTd DataLabel="Surname">@context.Surname</MudTd>
+                            <MudTd DataLabel="Email">@context.Email</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudItem>
+
+                <MudItem>
+                    <h3>Detailed user information</h3>
+                    <MudTextField @bind-Value="SelectedCustomer.FirstName" Label="First name" Variant="Variant.Outlined"></MudTextField>
+                    <MudTextField @bind-Value="SelectedCustomer.Surname" Label="Surname" Variant="Variant.Outlined"></MudTextField>
+                    <MudTextField @bind-Value="SelectedCustomer.Email" Label="Email" Variant="Variant.Outlined"></MudTextField>
+                    <MudTextField @bind-Value="SelectedCustomer.PhoneNumber" Label="Phone number" Variant="Variant.Outlined" Adornment="Adornment.Start" />
+                    <MudTextField @bind-Value="SelectedCustomer.Address" Label="Address" Variant="Variant.Outlined" Adornment="Adornment.Start" />
+                    <MudTextField @bind-Value="AdminOrUser" Label="Role" Variant="Variant.Outlined" Adornment="Adornment.Start" />
+                </MudItem>
+            </MudGrid>
+        </MudItem>
+
+
+
+    </MudGrid>
+
+
+    @code {
+    private int _selectedRowNumber = -1;
+    private int _selectedRowNumberCustomer = -1;
+    private MudTable<WineDTO>? _mudTable;
+    private MudTable<CustomerDTO>? _mudTableCustomer;
+    private readonly List<string> _clickedEvents = new();
+    private readonly List<string> _clickedEventsCustomer = new();
+
+    public List<WineDTO> Wines { get; set; } = new List<WineDTO>();
+    public List<WineTypeDTO> WineTypes { get; set; } = new List<WineTypeDTO>();
+    public List<CustomerDTO?> Customers { get; set; } = new List<CustomerDTO?>();
+
+    public string? SelectedWineType { get; set; }
+    public string? TextValueNewWineType { get; set; }
+
+    public WineDTO SelectedWine = new WineDTO();
+    public CustomerDTO SelectedCustomer { get; set; } = new CustomerDTO();
+
+    //To add new wines to the collection
+    public int Amount { get; set; }
+    public string? TypeTextValue { get; set; }
+    public string? WineName { get; set; }
+    public string? WineDescription { get; set; }
+    public bool Status { get; set; }
+
+    public string? SearchTerm = "";
+
+    public string? AdminOrUser { get; set; } = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Wines.AddRange(await WineService.GetAllWines());
+        WineTypes.AddRange(await WineTypeService.GetAllWineTypes());
+        Customers.AddRange(await CustomerService.GetAllCustomer());
+    }
+
+
+    private void RowClickEvent(TableRowClickEventArgs<WineDTO> EventArgs)
+    {
+        SelectedWine = EventArgs.Item;
+
+    }
+    private void RowClickEventCustomer(TableRowClickEventArgs<CustomerDTO> EventArgs)
+    {
+        SelectedCustomer = EventArgs.Item;
+        if (SelectedCustomer.IsAdmin)
+        {
+            AdminOrUser = "Admin";
+        }
+        else
+        {
+            AdminOrUser = "User";
+        }
+    }
+    private string SelectedRowClassFunc(WineDTO element, int rowNumber)
+    {
+        if (_selectedRowNumber == rowNumber)
+        {
+            _selectedRowNumber = -1;
+            _clickedEvents.Add("Selected Row: None");
+            return string.Empty;
+        }
+        else if (_mudTable.SelectedItem != null && _mudTable.SelectedItem.Equals(element))
+        {
+            _selectedRowNumber = rowNumber;
+            _clickedEvents.Add($"Selected Row: {rowNumber}");
+            return "selected";
+        }
+        else
+        {
+            return string.Empty;
+        }
+    }
+    private string SelectedRowClassFuncCustomer(CustomerDTO element, int rowNumber)
+    {
+        if (_selectedRowNumberCustomer == rowNumber)
+        {
+            _selectedRowNumberCustomer = -1;
+            _clickedEventsCustomer.Add("Selected Row: None");
+            return string.Empty;
+        }
+        else if (_mudTableCustomer.SelectedItem != null && _mudTableCustomer.SelectedItem.Equals(element))
+        {
+            _selectedRowNumberCustomer = rowNumber;
+            _clickedEventsCustomer.Add($"Selected Row: {rowNumber}");
+            return "selected";
+        }
+        else
+        {
+            return string.Empty;
+        }
+    }
+
+
+    void OnSearchInput()
+    {
+        if (!string.IsNullOrEmpty(SearchTerm))
+        {
+            var matchingCustomer = Customers.FirstOrDefault(c => c.Email == SearchTerm);
+            if (matchingCustomer != null)
+            {
+                Customers = new List<CustomerDTO?> { matchingCustomer };
+            }
+        }
+        else
+        {
+            Customers = Customers;
+        }
+    }
+
+
+    private async Task AddNewWineType()
+    {
+        await WineTypeService.AddNewWineType(TextValueNewWineType);
+        WineTypes.Clear();
+        WineTypes.AddRange(await WineTypeService.GetAllWineTypes());
+    }
+
+    private async Task AddNewWine()
+    {
+        //get all types
+        var allTypes = await WineTypeService.GetAllWineTypes();
+
+        //check if the input type exists
+        var type = allTypes.FirstOrDefault(p => p.Name == TypeTextValue);
+        //if type is null show error message
+        if (type is null)
+        {
+            return;
+        }
+
+        var newWine = new WineDTO()
+            {
+                Name = WineName,
+                Description = WineDescription,
+                Price = Amount,
+                Status = Status,
+                TypeId = type.Id
+            };
+
+        await WineTypeService.AddNewWine(newWine);
+
+
+        Wines.Clear();
+        Wines.AddRange(await WineService.GetAllWines());
+    }
+    private async Task UpdateWine()
+    {
+        await WineService.UpdateWine(SelectedWine);
+
+    }
+    private async Task DeleteWine()
+    {
+        await WineService.DeleteWine(SelectedWine);
+
+
+        Wines.Clear();
+        Wines.AddRange(await WineService.GetAllWines());
+    }
+
+    private async Task OnReset()
+    {
+        Customers.Clear();
+        Customers.AddRange(await CustomerService.GetAllCustomer());
+    }
+
+    }

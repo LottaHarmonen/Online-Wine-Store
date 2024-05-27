@@ -1,0 +1,54 @@
+﻿@page "/"
+@rendermode InteractiveServer
+
+<PageTitle>Home</PageTitle>
+
+<div class="background-image-container">
+    <div class="background-overlay"></div>
+    <MudImage Src="images/zan-WrueFKpTlQs-unsplash.jpg" Alt="WineStart" Elevation="25" />
+    <h1>Welcome! Let's explore some wines</h1>
+    <MudButton Href="/WineCollection" Variant="Variant.Outlined" Class="button">Check out our collection</MudButton>
+</div>
+
+<style>
+    .background-image-container {
+        position: relative;
+        background-image: url(images/zan-WrueFKpTlQs-unsplash.jpg);
+        background-size: cover;
+        background-position: center;
+        height: 100vh;
+    }
+
+    .background-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.2);
+    }
+
+    h1 {
+        font-size: 3em;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        text-align: center;
+        z-index: 1;
+        margin-bottom: -20px;
+    }
+
+    .button {
+        position: absolute;
+        top: 60%;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 2;
+    }
+</style>
+@code
+{
+
+}

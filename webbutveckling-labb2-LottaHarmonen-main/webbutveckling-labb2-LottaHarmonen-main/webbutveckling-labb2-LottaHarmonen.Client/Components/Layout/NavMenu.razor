@@ -1,0 +1,90 @@
+﻿@using webbutveckling_labb2_LottaHarmonen.Client.Components.Pages
+@using webbutveckling_labb2_LottaHarmonen.Client.Components.Pages
+@using Microsoft.AspNetCore.Components.Authorization
+@using webbutveckling_labb2_LottaHarmonen.Shared.DTOs
+@inject CustomerService CustomerService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<style>
+    .nav-menu {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .nav-left {
+        display: flex;
+    }
+</style>
+
+<div class="nav-menu">
+    <div class="nav-left">
+        <MudIconButton Href="/" Icon="@Icons.Material.Filled.Home" Color="Color.Inherit" class="nav-item" />
+        <MudIconButton Href="/WineCollection" Color="Color.Inherit" class="nav-item"><span>Shop</span></MudIconButton>
+    </div>
+
+    <div class="nav-right">
+        <MudIconButton OnClick="CheckIfLoggedInToSeeUserView" Icon="@Icons.Material.Filled.Person" Color="Color.Inherit" class="nav-item"/>
+        <MudIconButton Href="/CartView" Icon="@Icons.Material.Filled.ShoppingCart" Color="Color.Inherit" class="nav-item"/>
+        <MudIconButton OnClick="CheckCurrentUser" Icon="@Icons.Material.Filled.AdminPanelSettings" Color="Color.Inherit" class="nav-item"/>
+    </div>
+</div>
+
+
+
+@code {
+
+    public bool IsLoggedIn { get; set; }
+    public bool IsAdmin { get; set; }
+
+
+
+
+
+    private void CheckCurrentUser(MouseEventArgs obj)
+    {
+        if (CustomerService.CurrentUser == null)
+        {
+            NavigationManager.NavigateTo("/LogInView");
+        }
+        else
+        {
+            if (CustomerService.CurrentUser.IsAdmin)
+            {
+                NavigationManager.NavigateTo("/AdminView");
+            }
+
+            else
+            {
+                NavigationManager.NavigateTo("/NoAccessPage");
+            }
+           
+        }
+    }
+
+    private void CheckIfLoggedInToSeeLogInView(MouseEventArgs arg)
+    {
+        if (CustomerService.CurrentUser == null)
+        {
+            NavigationManager.NavigateTo("/LogInView");
+        }
+        else
+        {
+            NavigationManager.NavigateTo("/UserView");
+        }
+    }
+
+    private void CheckIfLoggedInToSeeUserView(MouseEventArgs obj)
+    {
+        if (CustomerService.CurrentUser == null)
+        {
+            NavigationManager.NavigateTo("/LogInView");
+        }
+        else
+        {
+            NavigationManager.NavigateTo("/UserView");
+        }
+    }
+
+}

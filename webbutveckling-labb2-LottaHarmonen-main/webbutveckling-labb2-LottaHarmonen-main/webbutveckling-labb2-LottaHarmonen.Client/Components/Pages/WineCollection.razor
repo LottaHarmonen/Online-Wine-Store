@@ -1,0 +1,136 @@
+﻿@page "/wineCollection"
+@using webbutveckling_labb2_LottaHarmonen.Shared.DTOs
+@inject WineService WineService
+@rendermode InteractiveServer
+
+<PageTitle>Wines</PageTitle>
+
+
+<MudGrid>
+
+    <MudItem xs="12">
+        <MudPaper Class="d-flex align-center justify-center mud-width-full py-8">
+            <h1>Our wines</h1>
+        </MudPaper>
+    </MudItem>
+
+
+    <MudItem xs="12">
+        <MudPaper Class="d-flex align-center justify-center mud-width-full py-8">
+            <MudItem>
+                <MudTextField T="string" @bind-Value="@SearchTerm" Label="Search by name" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="(()=>OnSearchInput())">Search</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="(()=>OnReset())">Reset</MudButton>
+            </MudItem>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudPaper Class="d-flex align-center justify-center mud-width-full">
+            <MudList>
+
+                <MudVirtualize Items="Wines">
+                    <MudListItem>
+                        <MudCard>
+
+
+                            <MudCardContent>
+                                <MudGrid>
+
+                                    <MudItem xs="12">
+                                        <MudPaper Class="d-flex align-center justify-center mud-width-full py-8">
+                                            <MudText Typo="Typo.h5">@context.Name</MudText>
+                                        </MudPaper>
+                                    </MudItem>
+
+                                    <MudItem xs="6">
+                                        <MudPaper Class="d-flex align-center justify-center mud-width-full">
+                                            <MudText Typo="Typo.body2">@context.Price $</MudText>
+                                        </MudPaper>
+                                    </MudItem>
+
+
+                                    <MudItem xs="6">
+                                        <MudPaper Class="d-flex align-center justify-center mud-width-full">
+                                            <MudText Typo="Typo.body2">@context.Description </MudText>
+                                        </MudPaper>
+                                    </MudItem>
+
+                                </MudGrid>
+                            </MudCardContent>
+
+
+                            <MudCardActions>
+                                <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => AddItemsToCart(context))">Add to cart</MudButton>
+                            </MudCardActions>
+                        </MudCard>
+                    </MudListItem>
+                </MudVirtualize>
+            </MudList>
+
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+
+
+
+
+
+    @code {
+    public List<WineDTO?> Wines { get; set; } = new();
+
+    public List<WineDTO> Cart { get; set; } = new List<WineDTO>();
+
+    public string SearchTerm { get; set; } = "";
+
+    private string value { get; set; } = "Nothing selected";
+
+    //hämta alla viner
+    protected override async Task OnInitializedAsync()
+    {
+        Wines.AddRange(await WineService.GetAllWines());
+    }
+
+
+
+    private void AddItemsToCart(WineDTO context)
+    {
+        var item = new WineDTO()
+            {
+                ProductId = context.ProductId,
+                Description = context.Description,
+                Name = context.Name,
+                Price = context.Price,
+                TypeId = context.TypeId,
+                Status = context.Status
+            };
+
+        WineService.AddToCart(item);
+
+    }
+
+
+    private void OnSearchInput()
+    {
+        if (!string.IsNullOrEmpty(SearchTerm))
+        {
+            var matchingWine = Wines.FirstOrDefault(c => c.Name.Contains(SearchTerm));
+            if (matchingWine != null)
+            {
+                Wines = new List<WineDTO?> { matchingWine };
+            }
+        }
+        else
+        {
+            Wines = Wines;
+        }
+    }
+
+    private async Task OnReset()
+    {
+        Wines.Clear();
+        Wines.AddRange(await WineService.GetAllWines());
+    }
+
+    }
